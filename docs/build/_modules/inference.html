@@ -1,0 +1,681 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="ru" data-content_root="../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>inference &mdash; документация CPU Version 1.0</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=9ca2116e"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/translations.js?v=cd1d70c9"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Алфавитный указатель" href="../genindex.html" />
+    <link rel="search" title="Поиск" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            CPU Version
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Поиск в документации" aria-label="Поиск в документации" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Меню навигации">
+              <p class="caption" role="heading"><span class="caption-text">Содержание:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">Модули</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Меню навигации для мобильных устройств" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">CPU Version</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Навигация по страницам">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Код модуля</a></li>
+      <li class="breadcrumb-item active">inference</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Исходный код inference</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Скрипт для запуска инференса обученной модели на изображениях.</span>
+
+<span class="sd">Этот модуль предоставляет функциональность для запуска инференса обученной модели</span>
+<span class="sd">Detectron2 на изображениях. Модуль поддерживает обнаружение объектов, сохранение масок,</span>
+<span class="sd">визуализацию результатов и обнаружение перекрывающихся детекций.</span>
+
+<span class="sd">Основные возможности:</span>
+<span class="sd">    - Загрузка и настройка модели Detectron2</span>
+<span class="sd">    - Обработка изображений и детекция объектов</span>
+<span class="sd">    - Сохранение масок сегментации</span>
+<span class="sd">    - Визуализация результатов детекции</span>
+<span class="sd">    - Обнаружение и анализ перекрывающихся детекций</span>
+<span class="sd">    - Экспорт результатов в JSON формат</span>
+
+<span class="sd">Пример использования:</span>
+<span class="sd">    python inference.py \</span>
+<span class="sd">        --img-dir images \</span>
+<span class="sd">        --weights model_final.pth \</span>
+<span class="sd">        --config-file config/config.yaml \</span>
+<span class="sd">        --output-dir output \</span>
+<span class="sd">        --num-classes 1 \</span>
+<span class="sd">        --thing-classes frame</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="c1"># Стандартные библиотеки Python</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">argparse</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="c1"># Библиотеки для работы с изображениями и массивами</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">cv2</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="c1"># Попытка импорта setuptools для совместимости с некоторыми установками</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">setuptools</span>  <span class="c1"># noqa: F401</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="k">pass</span>
+
+<span class="c1"># Подавление предупреждений от NumPy и PyTorch для более чистого вывода</span>
+<span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s2">&quot;ignore&quot;</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="ne">UserWarning</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="s2">&quot;.*NumPy array is not writeable.*&quot;</span><span class="p">)</span>
+<span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s2">&quot;ignore&quot;</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="ne">UserWarning</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="s2">&quot;.*__floordiv__ is deprecated.*&quot;</span><span class="p">)</span>
+<span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s2">&quot;ignore&quot;</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="ne">UserWarning</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="s2">&quot;.*torch.meshgrid.*&quot;</span><span class="p">)</span>
+<span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s2">&quot;ignore&quot;</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="ne">UserWarning</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="s2">&quot;.*Skip loading parameter.*&quot;</span><span class="p">)</span>
+<span class="c1"># Подавление FutureWarning о torch.load weights_only (безопасно для наших обученных моделей)</span>
+<span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s2">&quot;ignore&quot;</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="ne">FutureWarning</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="s2">&quot;.*torch.load.*weights_only.*&quot;</span><span class="p">)</span>
+
+<span class="c1"># Импорт компонентов Detectron2</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">detectron2.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_cfg</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">detectron2.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">MetadataCatalog</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">detectron2.data.detection_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">read_image</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">detectron2.engine</span><span class="w"> </span><span class="kn">import</span> <span class="n">DefaultPredictor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">detectron2.utils.visualizer</span><span class="w"> </span><span class="kn">import</span> <span class="n">Visualizer</span><span class="p">,</span> <span class="n">ColorMode</span>
+
+<span class="c1"># Путь к конфигурационному файлу по умолчанию</span>
+<span class="n">DEFAULT_CONFIG</span> <span class="o">=</span> <span class="s2">&quot;config/config.yaml&quot;</span>
+
+
+<div class="viewcode-block" id="setup_cfg">
+<a class="viewcode-back" href="../inference.html#inference.setup_cfg">[документация]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">setup_cfg</span><span class="p">(</span><span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Настраивает конфигурацию Detectron2 для инференса.</span>
+<span class="sd">    </span>
+<span class="sd">    Эта функция создает и настраивает объект конфигурации Detectron2 на основе</span>
+<span class="sd">    аргументов командной строки. Она устанавливает веса модели, количество классов,</span>
+<span class="sd">    порог уверенности, устройство выполнения (CPU/GPU) и метаданные для визуализации.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        args: Объект с аргументами командной строки, содержащий:</span>
+<span class="sd">            - config_file: путь к YAML конфигурационному файлу</span>
+<span class="sd">            - weights: путь к файлу с весами модели (.pth)</span>
+<span class="sd">            - num_classes: количество классов для детекции</span>
+<span class="sd">            - confidence_threshold: минимальный порог уверенности для детекций</span>
+<span class="sd">            - device: устройство для выполнения (&quot;cpu&quot; или &quot;cuda&quot;)</span>
+<span class="sd">            - thing_classes: список имен классов</span>
+<span class="sd">    </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        CfgNode: Замороженная конфигурация Detectron2, готовая к использованию</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Создание базовой конфигурации Detectron2</span>
+    <span class="n">cfg</span> <span class="o">=</span> <span class="n">get_cfg</span><span class="p">()</span>
+    <span class="c1"># Загрузка конфигурации из YAML файла</span>
+    <span class="n">cfg</span><span class="o">.</span><span class="n">merge_from_file</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">config_file</span><span class="p">)</span>
+    <span class="c1"># Установка формата масок в bitmask для совместимости</span>
+    <span class="n">cfg</span><span class="o">.</span><span class="n">INPUT</span><span class="o">.</span><span class="n">MASK_FORMAT</span> <span class="o">=</span> <span class="s2">&quot;bitmask&quot;</span>
+    
+    <span class="c1"># Настройка параметров модели</span>
+    <span class="n">cfg</span><span class="o">.</span><span class="n">MODEL</span><span class="o">.</span><span class="n">WEIGHTS</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">weights</span>  <span class="c1"># Путь к обученной модели</span>
+    <span class="n">cfg</span><span class="o">.</span><span class="n">MODEL</span><span class="o">.</span><span class="n">ROI_HEADS</span><span class="o">.</span><span class="n">NUM_CLASSES</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">num_classes</span>  <span class="c1"># Количество классов</span>
+    <span class="n">cfg</span><span class="o">.</span><span class="n">MODEL</span><span class="o">.</span><span class="n">ROI_HEADS</span><span class="o">.</span><span class="n">SCORE_THRESH_TEST</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">confidence_threshold</span>  <span class="c1"># Порог уверенности</span>
+    
+    <span class="c1"># Установка устройства (CPU или GPU)</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">device</span><span class="p">:</span>
+        <span class="n">cfg</span><span class="o">.</span><span class="n">MODEL</span><span class="o">.</span><span class="n">DEVICE</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">device</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Автоматическое определение: используем CPU если CUDA недоступна</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+        <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">():</span>
+            <span class="n">cfg</span><span class="o">.</span><span class="n">MODEL</span><span class="o">.</span><span class="n">DEVICE</span> <span class="o">=</span> <span class="s2">&quot;cuda&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">cfg</span><span class="o">.</span><span class="n">MODEL</span><span class="o">.</span><span class="n">DEVICE</span> <span class="o">=</span> <span class="s2">&quot;cpu&quot;</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;CUDA недоступна, используется CPU&quot;</span><span class="p">)</span>
+    
+    <span class="c1"># Установка метаданных для визуализации</span>
+    <span class="c1"># Используем уникальное имя датасета для инференса, чтобы избежать конфликтов</span>
+    <span class="c1"># с встроенными датасетами COCO</span>
+    <span class="n">inference_dataset_name</span> <span class="o">=</span> <span class="s2">&quot;__inference__&quot;</span>
+    <span class="n">cfg</span><span class="o">.</span><span class="n">DATASETS</span><span class="o">.</span><span class="n">TEST</span> <span class="o">=</span> <span class="p">(</span><span class="n">inference_dataset_name</span><span class="p">,)</span>
+    
+    <span class="c1"># Устанавливаем метаданные для визуализации</span>
+    <span class="c1"># Это безопасно, так как мы используем уникальное имя датасета</span>
+    <span class="n">metadata</span> <span class="o">=</span> <span class="n">MetadataCatalog</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">inference_dataset_name</span><span class="p">)</span>
+    <span class="c1"># Проверяем, можно ли установить метаданные (они могут быть уже установлены)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">metadata</span><span class="p">,</span> <span class="s1">&#39;thing_classes&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">metadata</span><span class="o">.</span><span class="n">thing_classes</span><span class="p">:</span>
+            <span class="n">metadata</span><span class="o">.</span><span class="n">thing_classes</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">thing_classes</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">AttributeError</span><span class="p">,</span> <span class="ne">AssertionError</span><span class="p">):</span>
+        <span class="c1"># Если метаданные уже установлены и конфликтуют, просто пропускаем</span>
+        <span class="c1"># Визуализация будет использовать существующие метаданные</span>
+        <span class="k">pass</span>
+    
+    <span class="n">cfg</span><span class="o">.</span><span class="n">freeze</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">cfg</span></div>
+
+
+
+<div class="viewcode-block" id="iou">
+<a class="viewcode-back" href="../inference.html#inference.iou">[документация]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">iou</span><span class="p">(</span><span class="n">box1</span><span class="p">,</span> <span class="n">box2</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Вычисляет Intersection over Union (IoU) для двух bounding boxes.</span>
+<span class="sd">    Использует ту же логику, что и в html_generator.py.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        box1: Кортеж или список (x1, y1, x2, y2)</span>
+<span class="sd">        box2: Кортеж или список (x1, y1, x2, y2)</span>
+<span class="sd">    </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        float: IoU значение от 0.0 до 1.0</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Преобразуем в кортежи для единообразия</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">box1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+        <span class="n">box1</span> <span class="o">=</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">box1</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">float</span><span class="p">(</span><span class="n">box1</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="nb">float</span><span class="p">(</span><span class="n">box1</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span> <span class="nb">float</span><span class="p">(</span><span class="n">box1</span><span class="p">[</span><span class="mi">3</span><span class="p">]))</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">box2</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+        <span class="n">box2</span> <span class="o">=</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">box2</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">float</span><span class="p">(</span><span class="n">box2</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="nb">float</span><span class="p">(</span><span class="n">box2</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span> <span class="nb">float</span><span class="p">(</span><span class="n">box2</span><span class="p">[</span><span class="mi">3</span><span class="p">]))</span>
+    
+    <span class="n">x_left</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">box1</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">box2</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">y_top</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">box1</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">box2</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">x_right</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">box1</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">box2</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+    <span class="n">y_bottom</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">box1</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">box2</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="n">x_right</span> <span class="o">&lt;</span> <span class="n">x_left</span> <span class="ow">or</span> <span class="n">y_bottom</span> <span class="o">&lt;</span> <span class="n">y_top</span><span class="p">:</span>
+        <span class="k">return</span> <span class="mf">0.0</span>
+    
+    <span class="n">intersection_area</span> <span class="o">=</span> <span class="p">(</span><span class="n">x_right</span> <span class="o">-</span> <span class="n">x_left</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">y_bottom</span> <span class="o">-</span> <span class="n">y_top</span><span class="p">)</span>
+    
+    <span class="n">box1_area</span> <span class="o">=</span> <span class="p">(</span><span class="n">box1</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">box1</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="p">(</span><span class="n">box1</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">-</span> <span class="n">box1</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">box2_area</span> <span class="o">=</span> <span class="p">(</span><span class="n">box2</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">box2</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="p">(</span><span class="n">box2</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">-</span> <span class="n">box2</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    
+    <span class="n">iou_value</span> <span class="o">=</span> <span class="n">intersection_area</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">box1_area</span> <span class="o">+</span> <span class="n">box2_area</span> <span class="o">-</span> <span class="n">intersection_area</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">iou_value</span></div>
+
+
+
+<div class="viewcode-block" id="detect_overlaps">
+<a class="viewcode-back" href="../inference.html#inference.detect_overlaps">[документация]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">detect_overlaps</span><span class="p">(</span><span class="n">instances</span><span class="p">,</span> <span class="n">iou_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Обнаруживает перекрывающиеся детекции используя ту же логику, что и в html_generator.py.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        instances: Instances объект из Detectron2</span>
+<span class="sd">        iou_threshold: Порог IoU для определения перекрытия (по умолчанию 0.1, как в html_generator.py)</span>
+<span class="sd">    </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        dict: Словарь с информацией о перекрытиях</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">num_instances</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">instances</span><span class="p">)</span>
+    <span class="n">overlaps</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;overlaps&#39;</span><span class="p">:</span> <span class="p">[],</span>
+        <span class="s1">&#39;total_overlaps&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="s1">&#39;instances_info&#39;</span><span class="p">:</span> <span class="p">[]</span>
+    <span class="p">}</span>
+    
+    <span class="k">if</span> <span class="n">num_instances</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">overlaps</span>
+    
+    <span class="n">boxes</span> <span class="o">=</span> <span class="n">instances</span><span class="o">.</span><span class="n">pred_boxes</span><span class="o">.</span><span class="n">tensor</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <span class="n">scores</span> <span class="o">=</span> <span class="n">instances</span><span class="o">.</span><span class="n">scores</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <span class="n">masks</span> <span class="o">=</span> <span class="n">instances</span><span class="o">.</span><span class="n">pred_masks</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    
+    <span class="c1"># Сохраняем информацию о каждом объекте</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_instances</span><span class="p">):</span>
+        <span class="n">bbox</span> <span class="o">=</span> <span class="n">boxes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">mask_area</span> <span class="o">=</span> <span class="n">masks</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+        <span class="n">bbox_width</span> <span class="o">=</span> <span class="n">bbox</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">bbox</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">bbox_height</span> <span class="o">=</span> <span class="n">bbox</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">-</span> <span class="n">bbox</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        
+        <span class="n">overlaps</span><span class="p">[</span><span class="s1">&#39;instances_info&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+            <span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="n">i</span><span class="p">,</span>
+            <span class="s1">&#39;score&#39;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">scores</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span>
+            <span class="s1">&#39;bbox&#39;</span><span class="p">:</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">bbox</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">float</span><span class="p">(</span><span class="n">bbox</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="nb">float</span><span class="p">(</span><span class="n">bbox</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span> <span class="nb">float</span><span class="p">(</span><span class="n">bbox</span><span class="p">[</span><span class="mi">3</span><span class="p">])],</span>
+            <span class="s1">&#39;bbox_center&#39;</span><span class="p">:</span> <span class="p">[</span><span class="nb">float</span><span class="p">((</span><span class="n">bbox</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">bbox</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="o">/</span> <span class="mi">2</span><span class="p">),</span> <span class="nb">float</span><span class="p">((</span><span class="n">bbox</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">bbox</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)],</span>
+            <span class="s1">&#39;bbox_size&#39;</span><span class="p">:</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">bbox_width</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="n">bbox_height</span><span class="p">)],</span>
+            <span class="s1">&#39;mask_area&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">mask_area</span><span class="p">)</span>
+        <span class="p">})</span>
+    
+    <span class="c1"># Проверяем перекрытия используя ту же логику, что и в html_generator.py</span>
+    <span class="c1"># В html_generator.py проверяется: sum(iou(new_box, existing) for existing in placed_boxes) &lt; 0.1</span>
+    <span class="c1"># Здесь мы проверяем все пары объектов</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_instances</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">num_instances</span><span class="p">):</span>
+            <span class="n">box1</span> <span class="o">=</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">boxes</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">float</span><span class="p">(</span><span class="n">boxes</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">]),</span> <span class="nb">float</span><span class="p">(</span><span class="n">boxes</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">2</span><span class="p">]),</span> <span class="nb">float</span><span class="p">(</span><span class="n">boxes</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">3</span><span class="p">]))</span>
+            <span class="n">box2</span> <span class="o">=</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">boxes</span><span class="p">[</span><span class="n">j</span><span class="p">][</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">float</span><span class="p">(</span><span class="n">boxes</span><span class="p">[</span><span class="n">j</span><span class="p">][</span><span class="mi">1</span><span class="p">]),</span> <span class="nb">float</span><span class="p">(</span><span class="n">boxes</span><span class="p">[</span><span class="n">j</span><span class="p">][</span><span class="mi">2</span><span class="p">]),</span> <span class="nb">float</span><span class="p">(</span><span class="n">boxes</span><span class="p">[</span><span class="n">j</span><span class="p">][</span><span class="mi">3</span><span class="p">]))</span>
+            
+            <span class="n">iou_value</span> <span class="o">=</span> <span class="n">iou</span><span class="p">(</span><span class="n">box1</span><span class="p">,</span> <span class="n">box2</span><span class="p">)</span>
+            
+            <span class="k">if</span> <span class="n">iou_value</span> <span class="o">&gt;=</span> <span class="n">iou_threshold</span><span class="p">:</span>
+                <span class="n">overlaps</span><span class="p">[</span><span class="s1">&#39;overlaps&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+                    <span class="s1">&#39;instance1&#39;</span><span class="p">:</span> <span class="n">i</span><span class="p">,</span>
+                    <span class="s1">&#39;instance2&#39;</span><span class="p">:</span> <span class="n">j</span><span class="p">,</span>
+                    <span class="s1">&#39;iou&#39;</span><span class="p">:</span> <span class="n">iou_value</span><span class="p">,</span>
+                    <span class="s1">&#39;score1&#39;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">scores</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span>
+                    <span class="s1">&#39;score2&#39;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">scores</span><span class="p">[</span><span class="n">j</span><span class="p">]),</span>
+                    <span class="s1">&#39;bbox1&#39;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">box1</span><span class="p">),</span>
+                    <span class="s1">&#39;bbox2&#39;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">box2</span><span class="p">)</span>
+                <span class="p">})</span>
+                <span class="n">overlaps</span><span class="p">[</span><span class="s1">&#39;total_overlaps&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+    
+    <span class="k">return</span> <span class="n">overlaps</span></div>
+
+
+
+<div class="viewcode-block" id="print_overlap_info">
+<a class="viewcode-back" href="../inference.html#inference.print_overlap_info">[документация]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">print_overlap_info</span><span class="p">(</span><span class="n">overlaps</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">iou_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">image_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Выводит информацию о перекрытиях с детальным описанием объектов.</span>
+<span class="sd">    </span>
+<span class="sd">    Функция форматирует и выводит в консоль подробную информацию о всех</span>
+<span class="sd">    обнаруженных объектах и их перекрытиях. Информация включает координаты</span>
+<span class="sd">    bounding boxes, размеры, площади масок и значения IoU для перекрывающихся пар.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        overlaps: Словарь с информацией о перекрытиях, содержащий:</span>
+<span class="sd">        </span>
+<span class="sd">            - total_overlaps: общее количество перекрытий</span>
+<span class="sd">            - instances_info: список информации о каждом объекте</span>
+<span class="sd">            - overlaps: список пар перекрывающихся объектов</span>
+<span class="sd">        </span>
+<span class="sd">        iou_threshold: Порог IoU, использованный для определения перекрытий</span>
+<span class="sd">        image_name: Имя обрабатываемого изображения (для ссылок на маски)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">overlaps</span><span class="p">[</span><span class="s1">&#39;total_overlaps&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">✓ Перекрывающихся детекций не обнаружено&quot;</span><span class="p">)</span>
+        <span class="k">return</span>
+    
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">⚠ Обнаружены перекрывающиеся детекции (IoU &gt;= </span><span class="si">{</span><span class="n">iou_threshold</span><span class="si">}</span><span class="s2">): </span><span class="si">{</span><span class="n">overlaps</span><span class="p">[</span><span class="s1">&#39;total_overlaps&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    
+    <span class="c1"># Выводим информацию о каждом объекте</span>
+    <span class="k">if</span> <span class="n">overlaps</span><span class="p">[</span><span class="s1">&#39;instances_info&#39;</span><span class="p">]:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">  Информация об объектах:&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;    (Каждый объект можно увидеть в сохраненной маске и визуализации)&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">info</span> <span class="ow">in</span> <span class="n">overlaps</span><span class="p">[</span><span class="s1">&#39;instances_info&#39;</span><span class="p">]:</span>
+            <span class="n">mask_ref</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot; (маска: </span><span class="si">{</span><span class="n">Path</span><span class="p">(</span><span class="n">image_name</span><span class="p">)</span><span class="o">.</span><span class="n">stem</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">image_name</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">&#39;image&#39;</span><span class="si">}</span><span class="s2">_mask_</span><span class="si">{</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">.png)&quot;</span> <span class="k">if</span> <span class="n">image_name</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;    Объект </span><span class="si">{</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span><span class="si">}{</span><span class="n">mask_ref</span><span class="si">}</span><span class="s2">:&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;      - Уверенность (Score): </span><span class="si">{</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;score&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;      - Bounding Box: [</span><span class="si">{</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;bbox&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;bbox&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;bbox&#39;</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;bbox&#39;</span><span class="p">][</span><span class="mi">3</span><span class="p">]</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2">]&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;        (левый_верхний_x, левый_верхний_y, правый_нижний_x, правый_нижний_y)&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;      - Размер: </span><span class="si">{</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;bbox_size&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2"> x </span><span class="si">{</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;bbox_size&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2"> пикселей&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;      - Центр: (</span><span class="si">{</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;bbox_center&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;bbox_center&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;      - Площадь маски: </span><span class="si">{</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;mask_area&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> пикселей&quot;</span><span class="p">)</span>
+    
+    <span class="c1"># Выводим информацию о перекрытиях</span>
+    <span class="k">if</span> <span class="n">overlaps</span><span class="p">[</span><span class="s1">&#39;total_overlaps&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">  Перекрывающиеся объекты:&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">overlap</span> <span class="ow">in</span> <span class="n">overlaps</span><span class="p">[</span><span class="s1">&#39;overlaps&#39;</span><span class="p">]:</span>
+            <span class="n">obj1_info</span> <span class="o">=</span> <span class="n">overlaps</span><span class="p">[</span><span class="s1">&#39;instances_info&#39;</span><span class="p">][</span><span class="n">overlap</span><span class="p">[</span><span class="s1">&#39;instance1&#39;</span><span class="p">]]</span>
+            <span class="n">obj2_info</span> <span class="o">=</span> <span class="n">overlaps</span><span class="p">[</span><span class="s1">&#39;instances_info&#39;</span><span class="p">][</span><span class="n">overlap</span><span class="p">[</span><span class="s1">&#39;instance2&#39;</span><span class="p">]]</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">    Перекрытие между объектом </span><span class="si">{</span><span class="n">overlap</span><span class="p">[</span><span class="s1">&#39;instance1&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> и </span><span class="si">{</span><span class="n">overlap</span><span class="p">[</span><span class="s1">&#39;instance2&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">:&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;      IoU: </span><span class="si">{</span><span class="n">overlap</span><span class="p">[</span><span class="s1">&#39;iou&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">overlap</span><span class="p">[</span><span class="s1">&#39;iou&#39;</span><span class="p">]</span><span class="o">*</span><span class="mi">100</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">%)&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;      Объект </span><span class="si">{</span><span class="n">overlap</span><span class="p">[</span><span class="s1">&#39;instance1&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">: Score=</span><span class="si">{</span><span class="n">overlap</span><span class="p">[</span><span class="s1">&#39;score1&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">, &quot;</span>
+                  <span class="sa">f</span><span class="s2">&quot;BBox=[</span><span class="si">{</span><span class="n">obj1_info</span><span class="p">[</span><span class="s1">&#39;bbox&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">obj1_info</span><span class="p">[</span><span class="s1">&#39;bbox&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2">, &quot;</span>
+                  <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">obj1_info</span><span class="p">[</span><span class="s1">&#39;bbox&#39;</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">obj1_info</span><span class="p">[</span><span class="s1">&#39;bbox&#39;</span><span class="p">][</span><span class="mi">3</span><span class="p">]</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2">], &quot;</span>
+                  <span class="sa">f</span><span class="s2">&quot;Размер=</span><span class="si">{</span><span class="n">obj1_info</span><span class="p">[</span><span class="s1">&#39;bbox_size&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2">x</span><span class="si">{</span><span class="n">obj1_info</span><span class="p">[</span><span class="s1">&#39;bbox_size&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2">, &quot;</span>
+                  <span class="sa">f</span><span class="s2">&quot;Площадь=</span><span class="si">{</span><span class="n">obj1_info</span><span class="p">[</span><span class="s1">&#39;mask_area&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> px²&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;      Объект </span><span class="si">{</span><span class="n">overlap</span><span class="p">[</span><span class="s1">&#39;instance2&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">: Score=</span><span class="si">{</span><span class="n">overlap</span><span class="p">[</span><span class="s1">&#39;score2&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">, &quot;</span>
+                  <span class="sa">f</span><span class="s2">&quot;BBox=[</span><span class="si">{</span><span class="n">obj2_info</span><span class="p">[</span><span class="s1">&#39;bbox&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">obj2_info</span><span class="p">[</span><span class="s1">&#39;bbox&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2">, &quot;</span>
+                  <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">obj2_info</span><span class="p">[</span><span class="s1">&#39;bbox&#39;</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">obj2_info</span><span class="p">[</span><span class="s1">&#39;bbox&#39;</span><span class="p">][</span><span class="mi">3</span><span class="p">]</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2">], &quot;</span>
+                  <span class="sa">f</span><span class="s2">&quot;Размер=</span><span class="si">{</span><span class="n">obj2_info</span><span class="p">[</span><span class="s1">&#39;bbox_size&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2">x</span><span class="si">{</span><span class="n">obj2_info</span><span class="p">[</span><span class="s1">&#39;bbox_size&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2">, &quot;</span>
+                  <span class="sa">f</span><span class="s2">&quot;Площадь=</span><span class="si">{</span><span class="n">obj2_info</span><span class="p">[</span><span class="s1">&#39;mask_area&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> px²&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="convert_to_json_serializable">
+<a class="viewcode-back" href="../inference.html#inference.convert_to_json_serializable">[документация]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">convert_to_json_serializable</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Преобразует numpy типы в стандартные Python типы для JSON сериализации.</span>
+<span class="sd">    </span>
+<span class="sd">    Рекурсивно обходит структуры данных (словари, списки) и преобразует</span>
+<span class="sd">    numpy типы (int32, int64, float32, float64, ndarray) в стандартные</span>
+<span class="sd">    Python типы (int, float, list), которые могут быть сериализованы в JSON.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        obj: Объект для преобразования (может быть dict, list, numpy тип или другой тип)</span>
+<span class="sd">    </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Преобразованный объект с Python типами вместо numpy типов</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">obj</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">convert_to_json_serializable</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">obj</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">convert_to_json_serializable</span><span class="p">(</span><span class="n">item</span><span class="p">)</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">obj</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">obj</span></div>
+
+
+
+<div class="viewcode-block" id="save_overlaps_json">
+<a class="viewcode-back" href="../inference.html#inference.save_overlaps_json">[документация]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">save_overlaps_json</span><span class="p">(</span><span class="n">overlaps</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">output_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">image_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">iou_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Сохраняет информацию о перекрытиях в JSON файл.</span>
+<span class="sd">    </span>
+<span class="sd">    Создает JSON файл с полной информацией о всех обнаруженных объектах</span>
+<span class="sd">    и их перекрытиях. Файл сохраняется с именем вида &quot;{image_name}_overlaps.json&quot;.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        overlaps: Словарь с информацией о перекрытиях</span>
+<span class="sd">        output_dir: Директория для сохранения JSON файла</span>
+<span class="sd">        image_name: Имя исходного изображения</span>
+<span class="sd">        iou_threshold: Порог IoU, использованный для определения перекрытий</span>
+<span class="sd">    </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Path: Путь к сохраненному JSON файлу</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">json_data</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;image&quot;</span><span class="p">:</span> <span class="n">image_name</span><span class="p">,</span>
+        <span class="s2">&quot;iou_threshold&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">iou_threshold</span><span class="p">),</span>
+        <span class="s2">&quot;total_overlaps&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">overlaps</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;total_overlaps&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)),</span>
+        <span class="s2">&quot;instances&quot;</span><span class="p">:</span> <span class="n">convert_to_json_serializable</span><span class="p">(</span><span class="n">overlaps</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;instances_info&#39;</span><span class="p">,</span> <span class="p">[])),</span>
+        <span class="s2">&quot;overlaps&quot;</span><span class="p">:</span> <span class="n">convert_to_json_serializable</span><span class="p">(</span><span class="n">overlaps</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;overlaps&#39;</span><span class="p">,</span> <span class="p">[]))</span>
+    <span class="p">}</span>
+    
+    <span class="n">json_filename</span> <span class="o">=</span> <span class="n">output_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">Path</span><span class="p">(</span><span class="n">image_name</span><span class="p">)</span><span class="o">.</span><span class="n">stem</span><span class="si">}</span><span class="s2">_overlaps.json&quot;</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">json_filename</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">json_data</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    
+    <span class="k">return</span> <span class="n">json_filename</span></div>
+
+
+
+<div class="viewcode-block" id="save_masks">
+<a class="viewcode-back" href="../inference.html#inference.save_masks">[документация]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">save_masks</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">output_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">image_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">detect_overlapping</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Сохраняет маски сегментации в отдельные файлы.</span>
+<span class="sd">    </span>
+<span class="sd">    Функция извлекает маски из предсказаний модели и сохраняет их в нескольких форматах:</span>
+<span class="sd">    - Отдельные PNG файлы для каждой маски (черно-белые)</span>
+<span class="sd">    - Объединенная цветная маска со всеми объектами</span>
+<span class="sd">    - JSON файл с информацией о перекрытиях (если включено)</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        predictions: Словарь с предсказаниями модели, содержащий ключ &quot;instances&quot;</span>
+<span class="sd">        output_dir: Директория для сохранения масок</span>
+<span class="sd">        image_name: Имя исходного изображения</span>
+<span class="sd">        detect_overlapping: Флаг для включения обнаружения перекрытий</span>
+<span class="sd">        args: Объект с аргументами командной строки (для получения iou_threshold)</span>
+<span class="sd">    </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        dict или None: Словарь с информацией о перекрытиях или None, если объектов не найдено</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">instances</span> <span class="o">=</span> <span class="n">predictions</span><span class="p">[</span><span class="s2">&quot;instances&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">)</span>
+    <span class="n">num_instances</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">instances</span><span class="p">)</span>
+    
+    <span class="k">if</span> <span class="n">num_instances</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Не обнаружено объектов на изображении&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    
+    <span class="n">overlaps</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="c1"># Обнаружение перекрытий</span>
+    <span class="k">if</span> <span class="n">detect_overlapping</span><span class="p">:</span>
+        <span class="n">iou_threshold</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s1">&#39;iou_threshold&#39;</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">)</span> <span class="k">if</span> <span class="n">args</span> <span class="k">else</span> <span class="mf">0.1</span>
+        <span class="k">if</span> <span class="n">num_instances</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">overlaps</span> <span class="o">=</span> <span class="n">detect_overlaps</span><span class="p">(</span><span class="n">instances</span><span class="p">,</span> <span class="n">iou_threshold</span><span class="o">=</span><span class="n">iou_threshold</span><span class="p">)</span>
+            <span class="n">print_overlap_info</span><span class="p">(</span><span class="n">overlaps</span><span class="p">,</span> <span class="n">iou_threshold</span><span class="o">=</span><span class="n">iou_threshold</span><span class="p">,</span> <span class="n">image_name</span><span class="o">=</span><span class="n">image_name</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Создаем пустую структуру перекрытий, если объектов меньше 2</span>
+            <span class="n">overlaps</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s1">&#39;overlaps&#39;</span><span class="p">:</span> <span class="p">[],</span>
+                <span class="s1">&#39;total_overlaps&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                <span class="s1">&#39;instances_info&#39;</span><span class="p">:</span> <span class="p">[]</span>
+            <span class="p">}</span>
+            <span class="c1"># Добавляем информацию об объектах, если есть хотя бы один</span>
+            <span class="k">if</span> <span class="n">num_instances</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">boxes</span> <span class="o">=</span> <span class="n">instances</span><span class="o">.</span><span class="n">pred_boxes</span><span class="o">.</span><span class="n">tensor</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+                <span class="n">scores</span> <span class="o">=</span> <span class="n">instances</span><span class="o">.</span><span class="n">scores</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+                <span class="n">masks</span> <span class="o">=</span> <span class="n">instances</span><span class="o">.</span><span class="n">pred_masks</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+                <span class="n">bbox</span> <span class="o">=</span> <span class="n">boxes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">mask_area</span> <span class="o">=</span> <span class="n">masks</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+                <span class="n">overlaps</span><span class="p">[</span><span class="s1">&#39;instances_info&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+                    <span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                    <span class="s1">&#39;score&#39;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">scores</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+                    <span class="s1">&#39;bbox&#39;</span><span class="p">:</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">bbox</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">float</span><span class="p">(</span><span class="n">bbox</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="nb">float</span><span class="p">(</span><span class="n">bbox</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span> <span class="nb">float</span><span class="p">(</span><span class="n">bbox</span><span class="p">[</span><span class="mi">3</span><span class="p">])],</span>
+                    <span class="s1">&#39;bbox_center&#39;</span><span class="p">:</span> <span class="p">[</span><span class="nb">float</span><span class="p">((</span><span class="n">bbox</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">bbox</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="o">/</span> <span class="mi">2</span><span class="p">),</span> <span class="nb">float</span><span class="p">((</span><span class="n">bbox</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">bbox</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)],</span>
+                    <span class="s1">&#39;bbox_size&#39;</span><span class="p">:</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">bbox</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">bbox</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">float</span><span class="p">(</span><span class="n">bbox</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">-</span> <span class="n">bbox</span><span class="p">[</span><span class="mi">1</span><span class="p">])],</span>
+                    <span class="s1">&#39;mask_area&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">mask_area</span><span class="p">)</span>
+                <span class="p">})</span>
+        
+        <span class="c1"># Сохраняем перекрытия в JSON (даже если их нет)</span>
+        <span class="n">save_overlaps_json</span><span class="p">(</span><span class="n">overlaps</span><span class="p">,</span> <span class="n">output_dir</span><span class="p">,</span> <span class="n">image_name</span><span class="p">,</span> <span class="n">iou_threshold</span><span class="o">=</span><span class="n">iou_threshold</span><span class="p">)</span>
+    
+    <span class="n">masks_dir</span> <span class="o">=</span> <span class="n">output_dir</span> <span class="o">/</span> <span class="s2">&quot;masks&quot;</span>
+    <span class="n">masks_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    
+    <span class="c1"># Сохраняем каждую маску отдельно</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_instances</span><span class="p">):</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">instances</span><span class="o">.</span><span class="n">pred_masks</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span> <span class="o">*</span> <span class="mi">255</span>
+        <span class="n">mask_filename</span> <span class="o">=</span> <span class="n">masks_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">Path</span><span class="p">(</span><span class="n">image_name</span><span class="p">)</span><span class="o">.</span><span class="n">stem</span><span class="si">}</span><span class="s2">_mask_</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">.png&quot;</span>
+        <span class="n">cv2</span><span class="o">.</span><span class="n">imwrite</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">mask_filename</span><span class="p">),</span> <span class="n">mask</span><span class="p">)</span>
+    
+    <span class="c1"># Создаем объединенную маску (цветную)</span>
+    <span class="n">height</span><span class="p">,</span> <span class="n">width</span> <span class="o">=</span> <span class="n">instances</span><span class="o">.</span><span class="n">image_size</span>
+    <span class="n">combined_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">height</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
+    
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_instances</span><span class="p">):</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">instances</span><span class="o">.</span><span class="n">pred_masks</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+        <span class="c1"># Используем простую цветовую схему</span>
+        <span class="n">color</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([(</span><span class="n">i</span> <span class="o">*</span> <span class="mi">50</span><span class="p">)</span> <span class="o">%</span> <span class="mi">255</span><span class="p">,</span> <span class="p">(</span><span class="n">i</span> <span class="o">*</span> <span class="mi">100</span><span class="p">)</span> <span class="o">%</span> <span class="mi">255</span><span class="p">,</span> <span class="p">(</span><span class="n">i</span> <span class="o">*</span> <span class="mi">150</span><span class="p">)</span> <span class="o">%</span> <span class="mi">255</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
+        <span class="n">combined_mask</span><span class="p">[</span><span class="n">mask</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">color</span>
+    
+    <span class="n">combined_mask_filename</span> <span class="o">=</span> <span class="n">masks_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">Path</span><span class="p">(</span><span class="n">image_name</span><span class="p">)</span><span class="o">.</span><span class="n">stem</span><span class="si">}</span><span class="s2">_combined_mask.png&quot;</span>
+    <span class="n">cv2</span><span class="o">.</span><span class="n">imwrite</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">combined_mask_filename</span><span class="p">),</span> <span class="n">combined_mask</span><span class="p">)</span>
+    
+    <span class="k">return</span> <span class="n">overlaps</span></div>
+
+
+
+<div class="viewcode-block" id="main">
+<a class="viewcode-back" href="../inference.html#inference.main">[документация]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Главная функция для запуска инференса на изображениях.</span>
+<span class="sd">    </span>
+<span class="sd">    Парсит аргументы командной строки, настраивает модель, обрабатывает</span>
+<span class="sd">    все изображения в указанной директории и сохраняет результаты.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Создание парсера аргументов командной строки</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">&quot;Запуск инференса на изображениях&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--img-dir&quot;</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Путь к папке с входными изображениями&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--weights&quot;</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Путь к обученной модели (model_final.pth)&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--config-file&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">DEFAULT_CONFIG</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Путь к конфигурационному файлу&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--output-dir&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">&quot;output/inference&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Директория для сохранения результатов&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--num-classes&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Количество классов&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--thing-classes&quot;</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="s2">&quot;+&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;frame&quot;</span><span class="p">],</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Имена классов&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--confidence-threshold&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Порог уверенности для детекций&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--device&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;cpu&quot;</span><span class="p">,</span> <span class="s2">&quot;cuda&quot;</span><span class="p">],</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Устройство для инференса (cpu/cuda). По умолчанию определяется автоматически&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--detect-overlaps&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Обнаруживать перекрывающиеся детекции&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--iou-threshold&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Порог IoU для определения перекрытия (по умолчанию 0.1, как в html_generator.py)&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--html-metadata&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> 
+                       <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Путь к JSON файлу с метаданными HTML элементов для сопоставления. Можно использовать шаблон </span><span class="si">{page_id}</span><span class="s2"> для автоматической подстановки номера страницы&quot;</span><span class="p">)</span>
+    
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+    
+    <span class="c1"># Настройка конфигурации</span>
+    <span class="n">cfg</span> <span class="o">=</span> <span class="n">setup_cfg</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+    
+    <span class="c1"># Создание предиктора</span>
+    <span class="n">predictor</span> <span class="o">=</span> <span class="n">DefaultPredictor</span><span class="p">(</span><span class="n">cfg</span><span class="p">)</span>
+    
+    <span class="c1"># Проверка директории с изображениями</span>
+    <span class="n">img_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">img_dir</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">img_dir</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Директория не найдена: </span><span class="si">{</span><span class="n">img_dir</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">img_dir</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Указанный путь не является директорией: </span><span class="si">{</span><span class="n">img_dir</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    
+    <span class="c1"># Поиск всех изображений в директории</span>
+    <span class="n">image_extensions</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;.png&#39;</span><span class="p">,</span> <span class="s1">&#39;.jpg&#39;</span><span class="p">,</span> <span class="s1">&#39;.jpeg&#39;</span><span class="p">,</span> <span class="s1">&#39;.bmp&#39;</span><span class="p">,</span> <span class="s1">&#39;.tiff&#39;</span><span class="p">,</span> <span class="s1">&#39;.tif&#39;</span><span class="p">,</span> <span class="s1">&#39;.webp&#39;</span><span class="p">}</span>
+    <span class="n">image_files</span> <span class="o">=</span> <span class="p">[</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">img_dir</span><span class="o">.</span><span class="n">iterdir</span><span class="p">()</span> 
+                   <span class="k">if</span> <span class="n">f</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span> <span class="ow">and</span> <span class="n">f</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">image_extensions</span><span class="p">]</span>
+    
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">image_files</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;В директории </span><span class="si">{</span><span class="n">img_dir</span><span class="si">}</span><span class="s2"> не найдено изображений&quot;</span><span class="p">)</span>
+    
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Найдено изображений: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">image_files</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    
+    <span class="c1"># Создание директории для результатов</span>
+    <span class="n">output_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">output_dir</span><span class="p">)</span>
+    <span class="n">output_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    
+    <span class="c1"># Обработка каждого изображения</span>
+    <span class="n">total_instances</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">image_path</span> <span class="ow">in</span> <span class="n">image_files</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Обработка изображения: </span><span class="si">{</span><span class="n">image_path</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Определяем путь к HTML метаданным для этого изображения</span>
+        <span class="n">html_metadata_path</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">html_metadata</span><span class="p">:</span>
+            <span class="n">html_metadata_template</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">html_metadata</span>
+            <span class="c1"># Пытаемся извлечь page_id из имени файла (например, page_1.png -&gt; 1)</span>
+            <span class="n">page_id_match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;page[_\s]*(\d+)&#39;</span><span class="p">,</span> <span class="n">image_path</span><span class="o">.</span><span class="n">stem</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">page_id_match</span><span class="p">:</span>
+                <span class="n">page_id</span> <span class="o">=</span> <span class="n">page_id_match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">html_metadata_path</span> <span class="o">=</span> <span class="n">html_metadata_template</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">page_id</span><span class="o">=</span><span class="n">page_id</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="s1">&#39;</span><span class="si">{page_id}</span><span class="s1">&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">html_metadata_template</span><span class="p">:</span>
+                <span class="c1"># Если шаблон не используется, используем путь как есть</span>
+                <span class="n">html_metadata_path</span> <span class="o">=</span> <span class="n">html_metadata_template</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;⚠️ Не удалось извлечь page_id из имени файла </span><span class="si">{</span><span class="n">image_path</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            
+            <span class="c1"># Создаем временный args объект с путем к метаданным для этого изображения</span>
+            <span class="k">class</span><span class="w"> </span><span class="nc">TempArgs</span><span class="p">:</span>
+                <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">original_args</span><span class="p">,</span> <span class="n">html_metadata_path</span><span class="p">):</span>
+                    <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="n">original_args</span><span class="p">):</span>
+                        <span class="k">if</span> <span class="ow">not</span> <span class="n">attr</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">):</span>
+                            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">original_args</span><span class="p">,</span> <span class="n">attr</span><span class="p">))</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">html_metadata</span> <span class="o">=</span> <span class="n">html_metadata_path</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">image</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">image_path</span><span class="p">)</span>
+            
+            <span class="n">temp_args</span> <span class="o">=</span> <span class="n">TempArgs</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">html_metadata_path</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">temp_args</span> <span class="o">=</span> <span class="n">args</span>
+            <span class="n">temp_args</span><span class="o">.</span><span class="n">image</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">image_path</span><span class="p">)</span>
+        
+        <span class="c1"># Загрузка изображения</span>
+        <span class="n">image</span> <span class="o">=</span> <span class="n">read_image</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">image_path</span><span class="p">),</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;BGR&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Запуск инференса</span>
+        <span class="n">predictions</span> <span class="o">=</span> <span class="n">predictor</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+        
+        <span class="c1"># Сохранение масок</span>
+        <span class="n">save_masks</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">output_dir</span><span class="p">,</span> <span class="n">image_path</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">detect_overlapping</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">detect_overlaps</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="n">temp_args</span><span class="p">)</span>
+        
+        <span class="c1"># Сохранение визуализации</span>
+        <span class="n">metadata</span> <span class="o">=</span> <span class="n">MetadataCatalog</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">DATASETS</span><span class="o">.</span><span class="n">TEST</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">visualizer</span> <span class="o">=</span> <span class="n">Visualizer</span><span class="p">(</span><span class="n">image</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">::</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">metadata</span><span class="o">=</span><span class="n">metadata</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">instance_mode</span><span class="o">=</span><span class="n">ColorMode</span><span class="o">.</span><span class="n">IMAGE</span><span class="p">)</span>
+        <span class="n">vis_output</span> <span class="o">=</span> <span class="n">visualizer</span><span class="o">.</span><span class="n">draw_instance_predictions</span><span class="p">(</span><span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">[</span><span class="s2">&quot;instances&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">))</span>
+        
+        <span class="n">vis_filename</span> <span class="o">=</span> <span class="n">output_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">image_path</span><span class="o">.</span><span class="n">stem</span><span class="si">}</span><span class="s2">_visualization.png&quot;</span>
+        <span class="n">vis_output</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">vis_filename</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Сохранена визуализация: </span><span class="si">{</span><span class="n">vis_filename</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Вывод статистики для текущего изображения</span>
+        <span class="n">num_instances</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">predictions</span><span class="p">[</span><span class="s2">&quot;instances&quot;</span><span class="p">])</span>
+        <span class="n">total_instances</span> <span class="o">+=</span> <span class="n">num_instances</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Обнаружено объектов на изображении: </span><span class="si">{</span><span class="n">num_instances</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">num_instances</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">scores</span> <span class="o">=</span> <span class="n">predictions</span><span class="p">[</span><span class="s2">&quot;instances&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">scores</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Средняя уверенность: </span><span class="si">{</span><span class="n">scores</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Минимальная уверенность: </span><span class="si">{</span><span class="n">scores</span><span class="o">.</span><span class="n">min</span><span class="p">()</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Максимальная уверенность: </span><span class="si">{</span><span class="n">scores</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    
+    <span class="c1"># Итоговая статистика</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">{</span><span class="s1">&#39;=&#39;</span><span class="o">*</span><span class="mi">50</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Обработано изображений: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">image_files</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Всего обнаружено объектов: </span><span class="si">{</span><span class="n">total_instances</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Результаты сохранены в: </span><span class="si">{</span><span class="n">output_dir</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Авторские права 2025, Coursework. </p>
+  </div>
+
+  Собрано при помощи <a href="https://www.sphinx-doc.org/">Sphinx</a> с использованием
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">темы,</a>
+    предоставленной <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

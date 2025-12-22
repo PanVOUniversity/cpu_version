@@ -1,0 +1,414 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="ru" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Модуль inference &mdash; документация CPU Version 1.0</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=9ca2116e"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/translations.js?v=cd1d70c9"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Алфавитный указатель" href="genindex.html" />
+    <link rel="search" title="Поиск" href="search.html" />
+    <link rel="next" title="Модуль convert_coords" href="convert_coords.html" />
+    <link rel="prev" title="Модули" href="modules.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            CPU Version
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Поиск в документации" aria-label="Поиск в документации" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Меню навигации">
+              <p class="caption" role="heading"><span class="caption-text">Содержание:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">Модули</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Модуль inference</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#inference.convert_to_json_serializable"><code class="docutils literal notranslate"><span class="pre">convert_to_json_serializable()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#inference.detect_overlaps"><code class="docutils literal notranslate"><span class="pre">detect_overlaps()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#inference.iou"><code class="docutils literal notranslate"><span class="pre">iou()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#inference.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#inference.print_overlap_info"><code class="docutils literal notranslate"><span class="pre">print_overlap_info()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#inference.save_masks"><code class="docutils literal notranslate"><span class="pre">save_masks()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#inference.save_overlaps_json"><code class="docutils literal notranslate"><span class="pre">save_overlaps_json()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#inference.setup_cfg"><code class="docutils literal notranslate"><span class="pre">setup_cfg()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id1">Функции</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="convert_coords.html">Модуль convert_coords</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Меню навигации для мобильных устройств" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">CPU Version</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Навигация по страницам">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">Модули</a></li>
+      <li class="breadcrumb-item active">Модуль inference</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/inference.rst.txt" rel="nofollow"> Просмотреть исходный код страницы</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-inference">
+<span id="inference"></span><h1>Модуль inference<a class="headerlink" href="#module-inference" title="Ссылка на этот заголовок"></a></h1>
+<p>Скрипт для запуска инференса обученной модели на изображениях.</p>
+<p>Этот модуль предоставляет функциональность для запуска инференса обученной модели
+Detectron2 на изображениях. Модуль поддерживает обнаружение объектов, сохранение масок,
+визуализацию результатов и обнаружение перекрывающихся детекций.</p>
+<dl class="simple">
+<dt>Основные возможности:</dt><dd><ul class="simple">
+<li><p>Загрузка и настройка модели Detectron2</p></li>
+<li><p>Обработка изображений и детекция объектов</p></li>
+<li><p>Сохранение масок сегментации</p></li>
+<li><p>Визуализация результатов детекции</p></li>
+<li><p>Обнаружение и анализ перекрывающихся детекций</p></li>
+<li><p>Экспорт результатов в JSON формат</p></li>
+</ul>
+</dd>
+<dt>Пример использования:</dt><dd><p>python inference.py         –img-dir images         –weights model_final.pth         –config-file config/config.yaml         –output-dir output         –num-classes 1         –thing-classes frame</p>
+</dd>
+</dl>
+<dl class="py function">
+<dt class="sig sig-object py" id="inference.convert_to_json_serializable">
+<span class="sig-prename descclassname"><span class="pre">inference.</span></span><span class="sig-name descname"><span class="pre">convert_to_json_serializable</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/inference.html#convert_to_json_serializable"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#inference.convert_to_json_serializable" title="Ссылка на это определение"></a></dt>
+<dd><p>Преобразует numpy типы в стандартные Python типы для JSON сериализации.</p>
+<p>Рекурсивно обходит структуры данных (словари, списки) и преобразует
+numpy типы (int32, int64, float32, float64, ndarray) в стандартные
+Python типы (int, float, list), которые могут быть сериализованы в JSON.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>obj: Объект для преобразования (может быть dict, list, numpy тип или другой тип)</p>
+</dd>
+<dt>Returns:</dt><dd><p>Преобразованный объект с Python типами вместо numpy типов</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="inference.detect_overlaps">
+<span class="sig-prename descclassname"><span class="pre">inference.</span></span><span class="sig-name descname"><span class="pre">detect_overlaps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">instances</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iou_threshold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.1</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="_modules/inference.html#detect_overlaps"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#inference.detect_overlaps" title="Ссылка на это определение"></a></dt>
+<dd><p>Обнаруживает перекрывающиеся детекции используя ту же логику, что и в html_generator.py.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>instances: Instances объект из Detectron2
+iou_threshold: Порог IoU для определения перекрытия (по умолчанию 0.1, как в html_generator.py)</p>
+</dd>
+<dt>Returns:</dt><dd><p>dict: Словарь с информацией о перекрытиях</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="inference.iou">
+<span class="sig-prename descclassname"><span class="pre">inference.</span></span><span class="sig-name descname"><span class="pre">iou</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">box1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">box2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/inference.html#iou"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#inference.iou" title="Ссылка на это определение"></a></dt>
+<dd><p>Вычисляет Intersection over Union (IoU) для двух bounding boxes.
+Использует ту же логику, что и в html_generator.py.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>box1: Кортеж или список (x1, y1, x2, y2)
+box2: Кортеж или список (x1, y1, x2, y2)</p>
+</dd>
+<dt>Returns:</dt><dd><p>float: IoU значение от 0.0 до 1.0</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="inference.main">
+<span class="sig-prename descclassname"><span class="pre">inference.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/inference.html#main"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#inference.main" title="Ссылка на это определение"></a></dt>
+<dd><p>Главная функция для запуска инференса на изображениях.</p>
+<p>Парсит аргументы командной строки, настраивает модель, обрабатывает
+все изображения в указанной директории и сохраняет результаты.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="inference.print_overlap_info">
+<span class="sig-prename descclassname"><span class="pre">inference.</span></span><span class="sig-name descname"><span class="pre">print_overlap_info</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">overlaps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iou_threshold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/inference.html#print_overlap_info"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#inference.print_overlap_info" title="Ссылка на это определение"></a></dt>
+<dd><p>Выводит информацию о перекрытиях с детальным описанием объектов.</p>
+<p>Функция форматирует и выводит в консоль подробную информацию о всех
+обнаруженных объектах и их перекрытиях. Информация включает координаты
+bounding boxes, размеры, площади масок и значения IoU для перекрывающихся пар.</p>
+<dl>
+<dt>Args:</dt><dd><p>overlaps: Словарь с информацией о перекрытиях, содержащий:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>total_overlaps: общее количество перекрытий</p></li>
+<li><p>instances_info: список информации о каждом объекте</p></li>
+<li><p>overlaps: список пар перекрывающихся объектов</p></li>
+</ul>
+</div></blockquote>
+<p>iou_threshold: Порог IoU, использованный для определения перекрытий
+image_name: Имя обрабатываемого изображения (для ссылок на маски)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="inference.save_masks">
+<span class="sig-prename descclassname"><span class="pre">inference.</span></span><span class="sig-name descname"><span class="pre">save_masks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">predictions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">detect_overlapping</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/inference.html#save_masks"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#inference.save_masks" title="Ссылка на это определение"></a></dt>
+<dd><p>Сохраняет маски сегментации в отдельные файлы.</p>
+<p>Функция извлекает маски из предсказаний модели и сохраняет их в нескольких форматах:
+- Отдельные PNG файлы для каждой маски (черно-белые)
+- Объединенная цветная маска со всеми объектами
+- JSON файл с информацией о перекрытиях (если включено)</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>predictions: Словарь с предсказаниями модели, содержащий ключ «instances»
+output_dir: Директория для сохранения масок
+image_name: Имя исходного изображения
+detect_overlapping: Флаг для включения обнаружения перекрытий
+args: Объект с аргументами командной строки (для получения iou_threshold)</p>
+</dd>
+<dt>Returns:</dt><dd><p>dict или None: Словарь с информацией о перекрытиях или None, если объектов не найдено</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="inference.save_overlaps_json">
+<span class="sig-prename descclassname"><span class="pre">inference.</span></span><span class="sig-name descname"><span class="pre">save_overlaps_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">overlaps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iou_threshold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/inference.html#save_overlaps_json"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#inference.save_overlaps_json" title="Ссылка на это определение"></a></dt>
+<dd><p>Сохраняет информацию о перекрытиях в JSON файл.</p>
+<p>Создает JSON файл с полной информацией о всех обнаруженных объектах
+и их перекрытиях. Файл сохраняется с именем вида «{image_name}_overlaps.json».</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>overlaps: Словарь с информацией о перекрытиях
+output_dir: Директория для сохранения JSON файла
+image_name: Имя исходного изображения
+iou_threshold: Порог IoU, использованный для определения перекрытий</p>
+</dd>
+<dt>Returns:</dt><dd><p>Path: Путь к сохраненному JSON файлу</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="inference.setup_cfg">
+<span class="sig-prename descclassname"><span class="pre">inference.</span></span><span class="sig-name descname"><span class="pre">setup_cfg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/inference.html#setup_cfg"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#inference.setup_cfg" title="Ссылка на это определение"></a></dt>
+<dd><p>Настраивает конфигурацию Detectron2 для инференса.</p>
+<p>Эта функция создает и настраивает объект конфигурации Detectron2 на основе
+аргументов командной строки. Она устанавливает веса модели, количество классов,
+порог уверенности, устройство выполнения (CPU/GPU) и метаданные для визуализации.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><dl class="simple">
+<dt>args: Объект с аргументами командной строки, содержащий:</dt><dd><ul class="simple">
+<li><p>config_file: путь к YAML конфигурационному файлу</p></li>
+<li><p>weights: путь к файлу с весами модели (.pth)</p></li>
+<li><p>num_classes: количество классов для детекции</p></li>
+<li><p>confidence_threshold: минимальный порог уверенности для детекций</p></li>
+<li><p>device: устройство для выполнения («cpu» или «cuda»)</p></li>
+<li><p>thing_classes: список имен классов</p></li>
+</ul>
+</dd>
+</dl>
+</dd>
+<dt>Returns:</dt><dd><p>CfgNode: Замороженная конфигурация Detectron2, готовая к использованию</p>
+</dd>
+</dl>
+</dd></dl>
+
+<section id="id1">
+<h2>Функции<a class="headerlink" href="#id1" title="Ссылка на этот заголовок"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">inference.</span></span><span class="sig-name descname"><span class="pre">setup_cfg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/inference.html#setup_cfg"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a></dt>
+<dd><p>Настраивает конфигурацию Detectron2 для инференса.</p>
+<p>Эта функция создает и настраивает объект конфигурации Detectron2 на основе
+аргументов командной строки. Она устанавливает веса модели, количество классов,
+порог уверенности, устройство выполнения (CPU/GPU) и метаданные для визуализации.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><dl class="simple">
+<dt>args: Объект с аргументами командной строки, содержащий:</dt><dd><ul class="simple">
+<li><p>config_file: путь к YAML конфигурационному файлу</p></li>
+<li><p>weights: путь к файлу с весами модели (.pth)</p></li>
+<li><p>num_classes: количество классов для детекции</p></li>
+<li><p>confidence_threshold: минимальный порог уверенности для детекций</p></li>
+<li><p>device: устройство для выполнения («cpu» или «cuda»)</p></li>
+<li><p>thing_classes: список имен классов</p></li>
+</ul>
+</dd>
+</dl>
+</dd>
+<dt>Returns:</dt><dd><p>CfgNode: Замороженная конфигурация Detectron2, готовая к использованию</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">inference.</span></span><span class="sig-name descname"><span class="pre">iou</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">box1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">box2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/inference.html#iou"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a></dt>
+<dd><p>Вычисляет Intersection over Union (IoU) для двух bounding boxes.
+Использует ту же логику, что и в html_generator.py.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>box1: Кортеж или список (x1, y1, x2, y2)
+box2: Кортеж или список (x1, y1, x2, y2)</p>
+</dd>
+<dt>Returns:</dt><dd><p>float: IoU значение от 0.0 до 1.0</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">inference.</span></span><span class="sig-name descname"><span class="pre">detect_overlaps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">instances</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iou_threshold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.1</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="_modules/inference.html#detect_overlaps"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a></dt>
+<dd><p>Обнаруживает перекрывающиеся детекции используя ту же логику, что и в html_generator.py.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>instances: Instances объект из Detectron2
+iou_threshold: Порог IoU для определения перекрытия (по умолчанию 0.1, как в html_generator.py)</p>
+</dd>
+<dt>Returns:</dt><dd><p>dict: Словарь с информацией о перекрытиях</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">inference.</span></span><span class="sig-name descname"><span class="pre">print_overlap_info</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">overlaps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iou_threshold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/inference.html#print_overlap_info"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a></dt>
+<dd><p>Выводит информацию о перекрытиях с детальным описанием объектов.</p>
+<p>Функция форматирует и выводит в консоль подробную информацию о всех
+обнаруженных объектах и их перекрытиях. Информация включает координаты
+bounding boxes, размеры, площади масок и значения IoU для перекрывающихся пар.</p>
+<dl>
+<dt>Args:</dt><dd><p>overlaps: Словарь с информацией о перекрытиях, содержащий:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>total_overlaps: общее количество перекрытий</p></li>
+<li><p>instances_info: список информации о каждом объекте</p></li>
+<li><p>overlaps: список пар перекрывающихся объектов</p></li>
+</ul>
+</div></blockquote>
+<p>iou_threshold: Порог IoU, использованный для определения перекрытий
+image_name: Имя обрабатываемого изображения (для ссылок на маски)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">inference.</span></span><span class="sig-name descname"><span class="pre">convert_to_json_serializable</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/inference.html#convert_to_json_serializable"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a></dt>
+<dd><p>Преобразует numpy типы в стандартные Python типы для JSON сериализации.</p>
+<p>Рекурсивно обходит структуры данных (словари, списки) и преобразует
+numpy типы (int32, int64, float32, float64, ndarray) в стандартные
+Python типы (int, float, list), которые могут быть сериализованы в JSON.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>obj: Объект для преобразования (может быть dict, list, numpy тип или другой тип)</p>
+</dd>
+<dt>Returns:</dt><dd><p>Преобразованный объект с Python типами вместо numpy типов</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">inference.</span></span><span class="sig-name descname"><span class="pre">save_overlaps_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">overlaps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iou_threshold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/inference.html#save_overlaps_json"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a></dt>
+<dd><p>Сохраняет информацию о перекрытиях в JSON файл.</p>
+<p>Создает JSON файл с полной информацией о всех обнаруженных объектах
+и их перекрытиях. Файл сохраняется с именем вида «{image_name}_overlaps.json».</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>overlaps: Словарь с информацией о перекрытиях
+output_dir: Директория для сохранения JSON файла
+image_name: Имя исходного изображения
+iou_threshold: Порог IoU, использованный для определения перекрытий</p>
+</dd>
+<dt>Returns:</dt><dd><p>Path: Путь к сохраненному JSON файлу</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">inference.</span></span><span class="sig-name descname"><span class="pre">save_masks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">predictions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">detect_overlapping</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/inference.html#save_masks"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a></dt>
+<dd><p>Сохраняет маски сегментации в отдельные файлы.</p>
+<p>Функция извлекает маски из предсказаний модели и сохраняет их в нескольких форматах:
+- Отдельные PNG файлы для каждой маски (черно-белые)
+- Объединенная цветная маска со всеми объектами
+- JSON файл с информацией о перекрытиях (если включено)</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>predictions: Словарь с предсказаниями модели, содержащий ключ «instances»
+output_dir: Директория для сохранения масок
+image_name: Имя исходного изображения
+detect_overlapping: Флаг для включения обнаружения перекрытий
+args: Объект с аргументами командной строки (для получения iou_threshold)</p>
+</dd>
+<dt>Returns:</dt><dd><p>dict или None: Словарь с информацией о перекрытиях или None, если объектов не найдено</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">inference.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/inference.html#main"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a></dt>
+<dd><p>Главная функция для запуска инференса на изображениях.</p>
+<p>Парсит аргументы командной строки, настраивает модель, обрабатывает
+все изображения в указанной директории и сохраняет результаты.</p>
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Нижняя область">
+        <a href="modules.html" class="btn btn-neutral float-left" title="Модули" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Предыдущая</a>
+        <a href="convert_coords.html" class="btn btn-neutral float-right" title="Модуль convert_coords" accesskey="n" rel="next">Следующая <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Авторские права 2025, Coursework. </p>
+  </div>
+
+  Собрано при помощи <a href="https://www.sphinx-doc.org/">Sphinx</a> с использованием
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">темы,</a>
+    предоставленной <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
