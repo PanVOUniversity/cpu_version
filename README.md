@@ -29,9 +29,9 @@ docker run -it --rm \
 
 ```bash
 python inference.py \
-  --image images/your_image.png \
+  --img-dir images \
   --weights model_final.pth \
-  --config-file ../configs/COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_1x.yaml \
+  --config-file config/config.yaml \
   --output-dir output \
   --num-classes 1 \
   --thing-classes frame \
@@ -42,6 +42,7 @@ python inference.py \
 ## Структура
 
 - `/home/appuser/detectron2_repo/validation/` - рабочая директория с inference.py и model_final.pth
+- `/home/appuser/detectron2_repo/validation/config/` - конфигурационный файл config.yaml
 - `/home/appuser/detectron2_repo/configs/` - конфигурационные файлы Detectron2
 - `/home/appuser/.local/` - локальные пакеты Python пользователя (установлены через --user)
 
@@ -51,15 +52,15 @@ python inference.py \
 # Создайте директории для изображений и результатов
 mkdir -p images output
 
-# Поместите ваше изображение в папку images
-cp your_image.png images/
+# Поместите ваши изображения в папку images
+cp your_image*.png images/
 
 # Запустите контейнер с монтированием томов
 docker run -it --rm \
   -v $(pwd)/images:/home/appuser/detectron2_repo/validation/images \
   -v $(pwd)/output:/home/appuser/detectron2_repo/validation/output \
   detectron2-cpu:latest \
-  bash -c "cd /home/appuser/detectron2_repo/validation && python inference.py --image images/your_image.png --weights model_final.pth --config-file ../configs/COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_1x.yaml --output-dir output --num-classes 1 --thing-classes frame --device cpu"
+  bash -c "cd /home/appuser/detectron2_repo/validation && python inference.py --img-dir images --weights model_final.pth --config-file config/config.yaml --output-dir output --num-classes 1 --thing-classes frame --device cpu"
 ```
 
 ## Требования

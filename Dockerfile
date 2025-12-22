@@ -65,9 +65,10 @@ RUN git clone https://github.com/PanVOUniversity/cpu_version.git /tmp/cpu_versio
 # Создание папки validation в detectron2
 RUN mkdir -p /home/appuser/detectron2_repo/validation
 
-# Копирование inference.py и model_final.pth в папку validation
+# Копирование inference.py, model_final.pth и config.yaml в папку validation
 # Проверяем оба возможных расположения файлов (в корне или в подпапке cpu-version)
-RUN if [ -f /tmp/cpu_version/inference.py ]; then \
+RUN mkdir -p /home/appuser/detectron2_repo/validation/config && \
+    if [ -f /tmp/cpu_version/inference.py ]; then \
         cp /tmp/cpu_version/inference.py /home/appuser/detectron2_repo/validation/; \
     elif [ -f /tmp/cpu_version/cpu-version/inference.py ]; then \
         cp /tmp/cpu_version/cpu-version/inference.py /home/appuser/detectron2_repo/validation/; \
@@ -81,7 +82,19 @@ RUN if [ -f /tmp/cpu_version/inference.py ]; then \
     else \
         echo "ERROR: model_final.pth not found in cpu_version repository"; exit 1; \
     fi && \
-    ls -lh /home/appuser/detectron2_repo/validation/
+    if [ -f /tmp/cpu_version/config/config.yaml ]; then \
+        cp /tmp/cpu_version/config/config.yaml /home/appuser/detectron2_repo/validation/config/; \
+    elif [ -f /tmp/cpu_version/cpu-version/config/config.yaml ]; then \
+        cp /tmp/cpu_version/cpu-version/config/config.yaml /home/appuser/detectron2_repo/validation/config/; \
+    elif [ -f /tmp/cpu_version/config.yaml ]; then \
+        cp /tmp/cpu_version/config.yaml /home/appuser/detectron2_repo/validation/config/; \
+    elif [ -f /tmp/cpu_version/cpu-version/config.yaml ]; then \
+        cp /tmp/cpu_version/cpu-version/config.yaml /home/appuser/detectron2_repo/validation/config/; \
+    else \
+        echo "WARNING: config.yaml not found in cpu_version repository"; \
+    fi && \
+    ls -lh /home/appuser/detectron2_repo/validation/ && \
+    ls -lh /home/appuser/detectron2_repo/validation/config/ 2>/dev/null || true
 
 # Установка кэша для моделей
 ENV FVCORE_CACHE="/tmp"
