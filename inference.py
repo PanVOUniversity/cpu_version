@@ -164,7 +164,7 @@ def iou(box1, box2):
     return iou_value
 
 
-def detect_overlaps(instances, iou_threshold: float = 0.1) -> dict:
+def detect_overlaps(instances, iou_threshold: float = 0.0) -> dict:
     """
     Обнаруживает перекрывающиеся детекции используя ту же логику, что и в html_generator.py.
     
@@ -230,7 +230,7 @@ def detect_overlaps(instances, iou_threshold: float = 0.1) -> dict:
     return overlaps
 
 
-def print_overlap_info(overlaps: dict, iou_threshold: float = 0.1, image_name: str = None):
+def print_overlap_info(overlaps: dict, iou_threshold: float = 0.0, image_name: str = None):
     """
     Выводит информацию о перекрытиях с детальным описанием объектов.
     
@@ -316,7 +316,7 @@ def convert_to_json_serializable(obj):
         return obj
 
 
-def save_overlaps_json(overlaps: dict, output_dir: Path, image_name: str, iou_threshold: float = 0.1):
+def save_overlaps_json(overlaps: dict, output_dir: Path, image_name: str, iou_threshold: float = 0.0):
     """
     Сохраняет информацию о перекрытиях в JSON файл.
     
@@ -376,7 +376,7 @@ def save_masks(predictions, output_dir: Path, image_name: str, detect_overlappin
     overlaps = None
     # Обнаружение перекрытий
     if detect_overlapping:
-        iou_threshold = getattr(args, 'iou_threshold', 0.1) if args else 0.1
+        iou_threshold = getattr(args, 'iou_threshold', 0.0) if args else 0.0
         if num_instances > 1:
             overlaps = detect_overlaps(instances, iou_threshold=iou_threshold)
             print_overlap_info(overlaps, iou_threshold=iou_threshold, image_name=image_name)
@@ -449,7 +449,7 @@ def main():
     parser.add_argument("--confidence-threshold", default=0.5, type=float, help="Порог уверенности для детекций")
     parser.add_argument("--device", default=None, type=str, choices=["cpu", "cuda"], help="Устройство для инференса (cpu/cuda). По умолчанию определяется автоматически")
     parser.add_argument("--detect-overlaps", action="store_true", default=True, help="Обнаруживать перекрывающиеся детекции")
-    parser.add_argument("--iou-threshold", default=0.1, type=float, help="Порог IoU для определения перекрытия (по умолчанию 0.1, как в html_generator.py)")
+    parser.add_argument("--iou-threshold", default=0.0, type=float, help="Порог IoU для определения перекрытия (по умолчанию 0.0, как в html_generator.py)")
     parser.add_argument("--html-metadata", type=str, default=None, 
                        help="Путь к JSON файлу с метаданными HTML элементов для сопоставления. Можно использовать шаблон {page_id} для автоматической подстановки номера страницы")
     

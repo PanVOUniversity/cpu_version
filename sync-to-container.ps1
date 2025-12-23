@@ -1,4 +1,4 @@
-$container = "thirsty_bartik"
+$container = "detectron2-cpu"
 
 $validationPath = "/home/appuser/detectron2_repo/validation"
 $imagesPath = "/home/appuser/detectron2_repo/validation/images"
