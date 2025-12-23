@@ -164,13 +164,42 @@ def iou(box1, box2):
     return iou_value
 
 
-def detect_overlaps(instances, iou_threshold: float = 0.0) -> dict:
+def mask_iou(mask1: np.ndarray, mask2: np.ndarray) -> float:
+    """
+    Вычисляет Intersection over Union (IoU) для двух масок сегментации.
+
+    Args:
+        mask1: Boolean/uint8 маска первого объекта
+        mask2: Boolean/uint8 маска второго объекта
+
+    Returns:
+        float: IoU значение от 0.0 до 1.0
+    """
+    # Приводим к булевым массивам
+    m1 = mask1.astype(bool)
+    m2 = mask2.astype(bool)
+
+    intersection = np.logical_and(m1, m2).sum()
+    if intersection == 0:
+        return 0.0
+
+    union = np.logical_or(m1, m2).sum()
+    if union == 0:
+        return 0.0
+
+    return float(intersection) / float(union)
+
+
+def detect_overlaps(instances, iou_threshold: float = 0.0, method: str = "bbox") -> dict:
     """
     Обнаруживает перекрывающиеся детекции используя ту же логику, что и в html_generator.py.
     
     Args:
         instances: Instances объект из Detectron2
-        iou_threshold: Порог IoU для определения перекрытия (по умолчанию 0.1, как в html_generator.py)
+        iou_threshold: Порог IoU для определения перекрытия
+        method: Метод вычисления IoU:
+            - "bbox": по bounding boxes (как в html_generator.py)
+            - "mask": по пиксельным маскам сегментации
     
     Returns:
         dict: Словарь с информацией о перекрытиях
@@ -179,8 +208,13 @@ def detect_overlaps(instances, iou_threshold: float = 0.0) -> dict:
     overlaps = {
         'overlaps': [],
         'total_overlaps': 0,
-        'instances_info': []
+      'instances_info': [],
+      'method': method
     }
+
+    method = (method or "bbox").lower()
+    if method not in ("bbox", "mask"):
+        raise ValueError(f"Неизвестный метод вычисления IoU: {method}. Ожидалось 'bbox' или 'mask'.")
     
     if num_instances < 2:
         return overlaps
@@ -212,9 +246,12 @@ def detect_overlaps(instances, iou_threshold: float = 0.0) -> dict:
         for j in range(i + 1, num_instances):
             box1 = (float(boxes[i][0]), float(boxes[i][1]), float(boxes[i][2]), float(boxes[i][3]))
             box2 = (float(boxes[j][0]), float(boxes[j][1]), float(boxes[j][2]), float(boxes[j][3]))
-            
-            iou_value = iou(box1, box2)
-            
+
+            if method == "bbox":
+                iou_value = iou(box1, box2)
+            else:
+                iou_value = mask_iou(masks[i], masks[j])
+
             if iou_value >= iou_threshold:
                 overlaps['overlaps'].append({
                     'instance1': i,
@@ -251,8 +288,9 @@ def print_overlap_info(overlaps: dict, iou_threshold: float = 0.0, image_name: s
     if overlaps['total_overlaps'] == 0:
         print("\n✓ Перекрывающихся детекций не обнаружено")
         return
-    
-    print(f"\n⚠ Обнаружены перекрывающиеся детекции (IoU >= {iou_threshold}): {overlaps['total_overlaps']}")
+
+    method = overlaps.get("method", "bbox")
+    print(f"\n⚠ Обнаружены перекрывающиеся детекции (метод: {method}, IoU >= {iou_threshold}): {overlaps['total_overlaps']}")
     
     # Выводим информацию о каждом объекте
     if overlaps['instances_info']:
@@ -335,6 +373,7 @@ def save_overlaps_json(overlaps: dict, output_dir: Path, image_name: str, iou_th
     json_data = {
         "image": image_name,
         "iou_threshold": float(iou_threshold),
+        "method": overlaps.get("method", "bbox"),
         "total_overlaps": int(overlaps.get('total_overlaps', 0)),
         "instances": convert_to_json_serializable(overlaps.get('instances_info', [])),
         "overlaps": convert_to_json_serializable(overlaps.get('overlaps', []))
@@ -377,8 +416,9 @@ def save_masks(predictions, output_dir: Path, image_name: str, detect_overlappin
     # Обнаружение перекрытий
     if detect_overlapping:
         iou_threshold = getattr(args, 'iou_threshold', 0.0) if args else 0.0
+        method = getattr(args, 'method', 'bbox') if args else 'bbox'
         if num_instances > 1:
-            overlaps = detect_overlaps(instances, iou_threshold=iou_threshold)
+            overlaps = detect_overlaps(instances, iou_threshold=iou_threshold, method=method)
             print_overlap_info(overlaps, iou_threshold=iou_threshold, image_name=image_name)
         else:
             # Создаем пустую структуру перекрытий, если объектов меньше 2
@@ -450,6 +490,12 @@ def main():
     parser.add_argument("--device", default=None, type=str, choices=["cpu", "cuda"], help="Устройство для инференса (cpu/cuda). По умолчанию определяется автоматически")
     parser.add_argument("--detect-overlaps", action="store_true", default=True, help="Обнаруживать перекрывающиеся детекции")
     parser.add_argument("--iou-threshold", default=0.0, type=float, help="Порог IoU для определения перекрытия (по умолчанию 0.0, как в html_generator.py)")
+    parser.add_argument(
+        "--method",
+        default="bbox",
+        choices=["bbox", "mask"],
+        help="Метод вычисления перекрытий: 'bbox' (по умолчанию, по прямоугольникам) или 'mask' (по пиксельным маскам сегментации)",
+    )
     parser.add_argument("--html-metadata", type=str, default=None, 
                        help="Путь к JSON файлу с метаданными HTML элементов для сопоставления. Можно использовать шаблон {page_id} для автоматической подстановки номера страницы")
     
